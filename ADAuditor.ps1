@@ -66,7 +66,7 @@
 			function Show-BPAModuleMenu
 			{
 				Write-Host "[ADAuditor]-[BPA Module Menu:]" -ForegroundColor "Green"
-				Write-Host "[1] - List availble model IDs"
+				Write-Host "[1] - List availble model IDs for this server ($env:computername)"
 				Write-Host "[2] - Scan using all available models"
 				Write-Host "[3] - Scan using user specified model (You will be prompted for the model ID)"
 				Write-Host "[4] - Scan using Active Directory model (Microsoft/Windows/DirectoryServices)"
@@ -76,13 +76,25 @@
 			# List availble BPA model IDs
 			function List-BPAModels
 			{
-				Get-BPAModel | Select-Object id, Name | Format-Table -Wrap
+				#Get-BPAModel | Select-Object id, Name | Format-Table -Wrap
+                Write-Host "Microsoft Windows fetaures installed on $env:computername with applicabe BPAs"
+                Get-WindowsFeature | Where-Object {$_. InstallState -eq "Installed" -and $_.BestPracticesModelId -ne ""} | Select-Object DisplayName, BestPracticesModelID | Format-List *
 			}
 
 			# Scan with all availble BPA models
 			function Scan-AllBPA
 			{
-
+                # Get all availble BPA for the server based on installed Windoes features
+                $AvailableBPA = Get-WindowsFeature | Where-Object {$_. InstallState -eq "Installed" -and $_.BestPracticesModelId -ne ""} | Select-Object BestPracticesModelID 
+                $i=1
+                $totalModels = $AvailableBPA.Count
+                foreach ($BPAModel in $AvailableBPA) 
+                {
+                    Write-Progress -Activity "Scanning..." -status "$i Model(s) complete" -percentComplete ($i/$totalModels*100) 
+                    Write-Host "Scanning with:" $BPAModel.BestPracticesModelId.ToString() -ForegroundColor Cyan
+                    Scan-BPA($BPAmodel.BestPracticesModelId.ToString())         
+                    $i++
+                }
 			}
 
 			# Scan with specific BPA models
@@ -91,11 +103,11 @@
 
 			}
 
-			# Scan with AD BPA models
-			function Scan-ADBPA
+			# Scan with BPA model in parameter object
+			function Scan-BPA ([PSObject] $BPA)
 			{
-				#HTML-header
-                $BPA = "Microsoft/Windows/DirectoryServices" 
+				
+                #HTML-header
                 $Head = " 
                 <title>ADAuditor BPA Report for $BPA on $env:computername</title> 
                 <style type='text/css'>  
@@ -107,7 +119,8 @@
                    td.Red { color: Red }  
                 </style>"
                 
-				$Outfile_ADBPA = $OutFile + "_Scan-ADBPA.csv"
+                $BPAName = $BPA.Replace("Microsoft/Windows/","") 
+				$Outfile_ADBPA = $OutFile + "_Scan-"+($BPAName)
 				#Kick-off BPA scan
 				Invoke-BPAModel -BestPracticesModelId $BPA -ErrorAction SilentlyContinue
 				#Get BPA results, filter and export
@@ -116,10 +129,10 @@
 									Select-Object ResultNumber,Severity,Category,Title,Problem,Impact,Resolution
 
 				# Save as CSV
-                $BPAResults | ConvertTo-CSV -NoTypeInformation | Out-File -FilePath $Outfile_ADBPA
+                $BPAResults | ConvertTo-CSV -NoTypeInformation | Out-File -FilePath $Outfile_ADBPA".csv"
                 # Save as HTML
                 $BPAResults | ConvertTo-Html -Title "ADAuditor BPA Report for $BPA on $env:computername" -Body "ADAuditor BPA Report for <b>$BPA</b> on server $env:computername <HR>" -Head $Head |
-                                 Out-File -FilePath $OutFile"_Scan-ADBPA.html"
+                                 Out-File -FilePath $Outfile_ADBPA".html"
 
 			}
 
@@ -132,14 +145,23 @@
 					'1'{ List-BPAModels }
 					'2'{ Scan-AllBPA }
 					'3'{ }
-					'4'{ Scan-ADBPA }
+					'4'{ Scan-BPA ("Microsoft/Windows/DirectoryServices") }
 					'0'{ return }
 				}
 				#pause
 			}
 			until ($input -eq '0')
 		}
-	}
+	
+    function Get-ServerInfo 
+    {
+        #Write all installe windoes features to html
+        #Get-WindowsFeature | Where-Object {$_. InstallState -eq "Installed"} | convertto-html | out-file -filepath test.html
+
+
+    }
+
+    }
 	process
 	{
 		# Main body here
