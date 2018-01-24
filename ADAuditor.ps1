@@ -148,4 +148,4 @@
 	}
 }
 
-invoke-ADAudit test.file
+invoke-ADAudit test_project.testfile
