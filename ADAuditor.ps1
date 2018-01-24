@@ -25,8 +25,7 @@
 	begin
 	{
 			Import-Module BestPractices
-			# Stop on errors
-			# $ErrorActionPreference = "Stop"
+		
 			# Get start time
 			$startTime = (Get-Date)
 
@@ -95,23 +94,39 @@
 			# Scan with AD BPA models
 			function Scan-ADBPA
 			{
-				$BPA = "Microsoft/Windows/DirectoryServices"
+				#HTML-header
+                $BPA = "Microsoft/Windows/DirectoryServices" 
+                $Head = " 
+                <title>ADAuditor BPA Report for $BPA on $env:computername</title> 
+                <style type='text/css'>  
+                   table  { border-collapse: collapse; width: 700px }  
+                   body   { font-family: Arial }  
+                   td, th { border-width: 2px; border-style: solid; text-align: left;  
+                padding: 2px 4px; border-color: black }  
+                   th     { background-color: grey }  
+                   td.Red { color: Red }  
+                </style>"
+                
 				$Outfile_ADBPA = $OutFile + "_Scan-ADBPA.csv"
 				#Kick-off BPA scan
 				Invoke-BPAModel -BestPracticesModelId $BPA -ErrorAction SilentlyContinue
 				#Get BPA results, filter and export
-				Get-BPAResult -ModelID $BPA -ErrorAction SilentlyContinue |
+				$BPAResults = Get-BPAResult -ModelID $BPA -ErrorAction SilentlyContinue |
 									Where-Object {$_.Problem -ne $Null} |
-									Select-Object ResultNumber,Severity,Category,Title,Problem,Impact,Resolution |
-									Export-Csv $Outfile_ADBPA -NoTypeInformation -Encoding UTF8
+									Select-Object ResultNumber,Severity,Category,Title,Problem,Impact,Resolution
 
+				# Save as CSV
+                $BPAResults | ConvertTo-CSV -NoTypeInformation | Out-File -FilePath $Outfile_ADBPA
+                # Save as HTML
+                $BPAResults | ConvertTo-Html -Title "ADAuditor BPA Report for $BPA on $env:computername" -Body "ADAuditor BPA Report for <b>$BPA</b> on server $env:computername <HR>" -Head $Head |
+                                 Out-File -FilePath $OutFile"_Scan-ADBPA.html"
 
 			}
 
 			do
 			{
 				Show-BPAModuleMenu
-				$input = Read-Host "Please make a selection>"
+				$input = Read-Host "Please make a selection"
 				switch ($input)
 				{
 					'1'{ List-BPAModels }
@@ -132,7 +147,7 @@
             do
 			{
 				Show-Menu
-				$input = Read-Host "Please make a selection>"
+				$input = Read-Host "Please make a selection"
 				switch ($input)
 				{
 					'1'{ Invoke-BPAModule }
