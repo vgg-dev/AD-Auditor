@@ -12,13 +12,14 @@
 #>
 
 
-	[CmndletBinding()]
+	[CmdletBinding()]
+    
 	Param (
-		[Parameter (Mandatory = $True)]
+		[Parameter(Mandatory = $True)]
 		[string]$OutFile,
-		[Parameter (Mandatory = $False)]
+		[Parameter(Mandatory = $False)]
 		[switch]$InstallRSAT,
-		[Parameter (Mandatory = $False)]
+		[Parameter(Mandatory = $False)]
 		[string]$Output = "csv"		
 	)
 	begin
@@ -29,11 +30,11 @@
 			# Get start time
 			$startTime = (Get-Date)
 
-			#
+			# 
 	
 	
 		# Print logo header
-		funtion Show-Header 
+		function Show-Header 
 		{
 			cls
 			Write-Host "    _   ___   _          _ _ _           " -ForegroundColor "blue"
@@ -48,7 +49,7 @@
 
 
 		# Print to the user console
-		funtion Show-Menu 
+		function Show-Menu 
 		{
 			Show-Header
 			Write-Host "ADAuditor Menu:"
@@ -126,7 +127,8 @@
 	process
 	{
 		# Main body here
-
+        
+        Show-Header
 
 	}
 }
