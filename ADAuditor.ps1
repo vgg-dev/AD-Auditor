@@ -100,7 +100,22 @@
 			# Scan with specific BPA models
 			function Scan-SpecBPA
 			{
-
+                $AvailableBPA = Get-WindowsFeature | Where-Object {$_. InstallState -eq "Installed" -and $_.BestPracticesModelId -ne ""} | Select-Object BestPracticesModelID 
+                $modelID=0
+                $totalModels = $AvailableBPA.Count
+                foreach ($BPAModel in $AvailableBPA) 
+                {
+                   
+                    Write-Host "[$modelID] ->" $BPAModel.BestPracticesModelId.ToString() -ForegroundColor Cyan      
+                    $modelID++
+                }
+                $input = Read-Host "Please select a model"
+      
+                if (([int]$input+1) -le $totalModels) 
+                {
+                    Write-Host "Scanning with " $AvailableBPA[$input].BestPracticesModelId.ToString() -ForegroundColor Cyan
+                    Scan-BPA($AvailableBPA[$input].BestPracticesModelId.ToString())
+                }
 			}
 
 			# Scan with BPA model in parameter object
@@ -144,7 +159,7 @@
 				{
 					'1'{ List-BPAModels }
 					'2'{ Scan-AllBPA }
-					'3'{ }
+					'3'{ Scan-SpecBPA }
 					'4'{ Scan-BPA ("Microsoft/Windows/DirectoryServices") }
 					'0'{ return }
 				}
