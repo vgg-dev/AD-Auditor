@@ -36,14 +36,15 @@
 		# Print logo header
 		function Show-Header 
 		{
-			cls
-			Write-Host "    _   ___   _          _ _ _           " -ForegroundColor "blue"
-			Write-Host "   /_\ |   \ /_\ _  _ __| (_) |_ ___ _ _ " -ForegroundColor "blue"
-			Write-Host "  / _ \| |) / _ \ || / _\` | |  _/ _ \ '_|" -ForegroundColor "blue"
-			Write-Host " /_/ \_\___/_/ \_\_,_\__,_|_|\__\___/_|  " -ForegroundColor "blue"
-			Write-Host " Active Directory Security Audit Framework" -ForegroundColor "blue"
+			[console]::ResetColor()
+            cls
+			Write-Host "    _   ___   _          _ _ _           " -ForegroundColor "red"
+			Write-Host "   /_\ |   \ /_\ _  _ __| (_) |_ ___ _ _ " -ForegroundColor "red"
+			Write-Host "  / _ \| |) / _ \ || / _\` | |  _/ _ \ '_|" -ForegroundColor "red"
+			Write-Host " /_/ \_\___/_/ \_\_,_\__,_|_|\__\___/_|  " -ForegroundColor "red"
+			Write-Host " Active Directory Security Audit Framework" -ForegroundColor "red"
 			Write-Host ""
-			Write-Host $startTime -ForegroundColor "DarkYellow"
+			Write-Host "-=" $startTime "=-" -ForegroundColor "DarkYellow"
 			Write-Host ""
 		}
 
@@ -52,10 +53,10 @@
 		function Show-Menu 
 		{
 			Show-Header
-			Write-Host "ADAuditor Menu:"
-			Write-Host "[1] - MS Best Practices Analyzer (BPA) Module"
-			Write-Host "[2] - Domain User Accounts Module"
-			Write-Host "[0] - Exit"
+			Write-Host "[ADAuditor Menu:]" -ForegroundColor "Green"
+			Write-Host "[1] - MS Best Practices Analyzer (BPA) Module" -ForegroundColor "White"
+			Write-Host "[2] - Domain User Accounts Module" -ForegroundColor "White"
+			Write-Host "[0] - Exit" -ForegroundColor "White"
 
 		}
 
@@ -65,7 +66,7 @@
 			# Show BPA Module menu
 			function Show-BPAModuleMenu
 			{
-				Write-Host "ADAuditor/BPA Module Menu:"
+				Write-Host "[ADAuditor]-[BPA Module Menu:]" -ForegroundColor "Green"
 				Write-Host "[1] - List availble model IDs"
 				Write-Host "[2] - Scan using all available models"
 				Write-Host "[3] - Scan using user specified model (You will be prompted for the model ID)"
@@ -95,14 +96,14 @@
 			function Scan-ADBPA
 			{
 				$BPA = "Microsoft/Windows/DirectoryServices"
-				
+				$Outfile_ADBPA = $OutFile + "_Scan-ADBPA.csv"
 				#Kick-off BPA scan
 				Invoke-BPAModel -BestPracticesModelId $BPA -ErrorAction SilentlyContinue
 				#Get BPA results, filter and export
 				Get-BPAResult -ModelID $BPA -ErrorAction SilentlyContinue |
 									Where-Object {$_.Problem -ne $Null} |
 									Select-Object ResultNumber,Severity,Category,Title,Problem,Impact,Resolution |
-									Export-Csv "filename.csv" -NoTypeInformation -Encoding UTF8
+									Export-Csv $Outfile_ADBPA -NoTypeInformation -Encoding UTF8
 
 
 			}
@@ -116,10 +117,10 @@
 					'1'{ List-BPAModels }
 					'2'{ Scan-AllBPA }
 					'3'{ }
-					'4'{ }
+					'4'{ Scan-ADBPA }
 					'0'{ return }
 				}
-				pause
+				#pause
 			}
 			until ($input -eq '0')
 		}
@@ -128,7 +129,23 @@
 	{
 		# Main body here
         
-        Show-Header
+            do
+			{
+				Show-Menu
+				$input = Read-Host "Please make a selection>"
+				switch ($input)
+				{
+					'1'{ Invoke-BPAModule }
+					'2'{  }
+					'3'{ }
+					'4'{ }
+					'0'{ return }
+				}
+				#pause
+			}
+			until ($input -eq '0')
 
 	}
 }
+
+invoke-ADAudit test.file
