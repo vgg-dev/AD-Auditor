@@ -39,11 +39,11 @@
 		{
 			[console]::ResetColor()
             cls
-			Write-Host "    _   ___   _          _ _ _           " -ForegroundColor "red"
-			Write-Host "   /_\ |   \ /_\ _  _ __| (_) |_ ___ _ _ " -ForegroundColor "red"
-			Write-Host "  / _ \| |) / _ \ || / _\` | |  _/ _ \ '_|" -ForegroundColor "red"
-			Write-Host " /_/ \_\___/_/ \_\_,_\__,_|_|\__\___/_|  " -ForegroundColor "red"
-			Write-Host " Active Directory Security Audit Framework" -ForegroundColor "red"
+			Write-Host "    _   ___   _          _ _ _           " -ForegroundColor red
+			Write-Host "   /_\ |   \ /_\ _  _ __| (_) |_ ___ _ _ " -ForegroundColor red
+			Write-Host "  / _ \| |) / _ \ || / _\` | |  _/ _ \ '_|" -ForegroundColor red
+			Write-Host " /_/ \_\___/_/ \_\_,_\__,_|_|\__\___/_|  " -ForegroundColor red
+			Write-Host " Active Directory Security Audit Framework" -ForegroundColor red
 			Write-Host ""
 			Write-Host "-=" $startTime "=-" -ForegroundColor "DarkYellow"
 			Write-Host ""
@@ -54,14 +54,17 @@
 		function Show-Menu 
 		{
 			Show-Header
-			Write-Host "[ADAuditor Menu:]" -ForegroundColor "Green"
-			Write-Host "[1] - MS Best Practices Analyzer (BPA) Module" -ForegroundColor "White"
-			Write-Host "[2] - Domain User Accounts Module" -ForegroundColor "White"
-			Write-Host "[0] - Exit" -ForegroundColor "White"
+			Write-Host "[ADAuditor Menu:]" -ForegroundColor Green
+			Write-Host "[1] - MS Best Practices Analyzer (BPA) Module" -ForegroundColor White
+			Write-Host "[2] - Domain User Accounts Module" -ForegroundColor White
+            Write-Host "[3] - Domain Computers Module" -ForegroundColor White
+			Write-Host "[0] - Exit" -ForegroundColor White
 
 		}
 
-		#MS-BPA Module
+    ######################
+    # MS BPA  MODULE     #################################################################################
+    ######################
 		function Invoke-BPAModule
 		{
 			# Show BPA Module menu
@@ -176,16 +179,69 @@
 			until ($input -eq '0')
 		}
 	
+    ########################################################################################################################
+    # End of MS BPA module
+
+
     function Get-ServerInfo 
     {
-        #Write all installe windoes features to html
+        #Write all installed windows features to html/csv
         #Get-WindowsFeature | Where-Object {$_. InstallState -eq "Installed"} | convertto-html | out-file -filepath test.html
 
 
     }
 
+    ######################
+    # AD COMPUTER MODULE ###################################################################################################
+    ######################
+    function Invoke-AD-ComputerModule
+    {
+        function Show-AD-Computer-ModuleMenu # AD Computer Module menu
+        {
+            Write-Host "[ADAuditor]-[Domain Computer Module Menu:]" -ForegroundColor "Green"
+			Write-Host "[1] - "
+			Write-Host "[2] - "
+			Write-Host "[3] - "
+			Write-Host "[4] - "
+			Write-Host "[0] - "
+        }
+        
+        function Get-UnsupportedOS # Search for EOL OS (i.e. Windows XP, 2000, 2003, etc.)
+        {
+            
+        }
+
+
+        # Menu loop
+        do
+			{
+				Show-AD-Computer-ModuleMenu
+				$input = Read-Host "Please make a selection"
+				switch ($input)
+				{
+					'1'{  }
+					'2'{  }
+					'3'{  }
+					'4'{  }
+					'0'{ return }
+				}
+				
+			}
+			until ($input -eq '0')
+
+
     }
-	process
+
+    
+    ########################################################################################################################
+    # End of AD Computer module
+
+
+
+    }
+	
+
+    process
 	{
 		# Main body here
         
@@ -197,7 +253,7 @@
 				{
 					'1'{ Invoke-BPAModule }
 					'2'{  }
-					'3'{ }
+					'3'{ Invoke-AD-ComputerModule }
 					'4'{ }
 					'0'{ return }
 				}
