@@ -198,8 +198,8 @@
     {
         function Show-AD-Computer-ModuleMenu # AD Computer Module menu
         {
-            Write-Host "[ADAuditor]-[Domain Computer Module Menu:]" -ForegroundColor "Green"
-			Write-Host "[1] - "
+            Write-Host "[ADAuditor]-[Domain Computer Module Menu:]" -ForegroundColor Green
+			Write-Host "[1] - Find unsupported Operating Systems in the Domain"
 			Write-Host "[2] - "
 			Write-Host "[3] - "
 			Write-Host "[4] - "
@@ -208,7 +208,28 @@
         
         function Get-UnsupportedOS # Search for EOL OS (i.e. Windows XP, 2000, 2003, etc.)
         {
-            
+            # Search for XP and 200x systems
+            $xp= Get-ADComputer -Filter "OperatingSystem -like '*XP*' -or OperatingSystem -like '*200*'" -Properties OperatingSystem, IPv4Address,IPv6Address, OperatingSystemServicePack |Select-Object Name, IPv4Address,IPv6Address, OperatingSystem, OperatingSystemServicePack
+            #Search for Win7 w/o SP1
+            $win7= Get-ADComputer -Filter "OperatingSystem -like '*Windows 7*' -and OperatingSystemServicePack -ne 'Service Pack 2'" -Properties OperatingSystem, IPv4Address,IPv6Address, OperatingSystemServicePack |Select-Object Name, IPv4Address,IPv6Address, OperatingSystem, OperatingSystemServicePack
+            $outdatedOS=$xp+$win7
+            if ($outdatedOS -ne $Null) 
+            {
+                Write-Host "** Unsupported Operating Systems found" -ForegroundColor Red
+                # Write results to HTML/CSV files
+                $Head = " 
+                    <title>ADAuditor Unsupported OS Report for Domain</title> 
+                    <style type='text/css'>  
+                       table  { border-collapse: collapse; width: 700px }  
+                       body   { font-family: Arial }  
+                       td, th { border-width: 2px; border-style: solid; text-align: left;  
+                    padding: 2px 4px; border-color: black }  
+                       th     { background-color: grey }  
+                       td.Red { color: Red }  
+                    </style>"
+                $outdatedOS|ConvertTo-Csv -NoTypeInformation | Out-File -FilePath $OutFile"_EOL_OS.html"
+                $outdatedOS|ConvertTo-HTML -Title "ADAuditor Unsupported OS Report for domain:"(Get-ADDomain | Select-Object Name).Name.toString() -Body "ADAuditor <b>Unsupported OS Report</b> for domain:"(Get-ADDomain | Select-Object Name).Name.toString() -Head $Head | Out-File -FilePath $OutFile"_EOL_OS.html"
+            }
         }
 
 
@@ -219,7 +240,7 @@
 				$input = Read-Host "Please make a selection"
 				switch ($input)
 				{
-					'1'{  }
+					'1'{ Get-UnsupportedOS  }
 					'2'{  }
 					'3'{  }
 					'4'{  }
