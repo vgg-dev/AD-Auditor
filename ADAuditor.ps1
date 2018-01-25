@@ -111,8 +111,14 @@
                     Write-Host "[$modelID] ->" $BPAModel.BestPracticesModelId.ToString() -ForegroundColor Cyan      
                     $modelID++
                 }
+                Write-Host "[q] -> Back to BPA menu"  -ForegroundColor Yellow   
                 $input = Read-Host "Please select a model"
       
+                if  ($input -eq "q" -or $input -eq "Q") 
+                {
+                    return
+                }
+                
                 if (([int]$input+1) -le $totalModels) 
                 {
                     Write-Host "Scanning with " $AvailableBPA[$input].BestPracticesModelId.ToString() -ForegroundColor Cyan
