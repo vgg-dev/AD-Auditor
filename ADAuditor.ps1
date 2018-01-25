@@ -2,6 +2,7 @@
 {
 
 <#
+
 .Synopsis
     Microsoft Active Directory security assessment tool
 
@@ -9,6 +10,7 @@
     This script will perform varius security assessments of Active Directory basd on NIST standards and industry best practices
 
 .Parameter
+
 #>
 
 
