@@ -212,7 +212,8 @@
             $xp= Get-ADComputer -Filter "OperatingSystem -like '*XP*' -or OperatingSystem -like '*200*'" -Properties OperatingSystem, IPv4Address,IPv6Address, OperatingSystemServicePack |Select-Object Name, IPv4Address,IPv6Address, OperatingSystem, OperatingSystemServicePack
             #Search for Win7 w/o SP1
             $win7= Get-ADComputer -Filter "OperatingSystem -like '*Windows 7*' -and OperatingSystemServicePack -ne 'Service Pack 2'" -Properties OperatingSystem, IPv4Address,IPv6Address, OperatingSystemServicePack |Select-Object Name, IPv4Address,IPv6Address, OperatingSystem, OperatingSystemServicePack
-            $outdatedOS=$xp+$win7
+            # something causing error here when Win2k8 server is present in the domain.
+            $outdatedOS= $xp+$win7
             if ($outdatedOS -ne $Null) 
             {
                 Write-Host "** Unsupported Operating Systems found" -ForegroundColor Red
