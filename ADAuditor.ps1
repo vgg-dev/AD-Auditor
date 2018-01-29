@@ -1,4 +1,6 @@
-﻿function Invoke-ADAudit
+﻿#Require -runAsAdministrator
+
+function Invoke-ADAudit
 {
 
 <#
@@ -213,13 +215,15 @@
             #Search for Win7 w/o SP1
             $win7= Get-ADComputer -Filter "OperatingSystem -like '*Windows 7*' -and OperatingSystemServicePack -ne 'Service Pack 2'" -Properties OperatingSystem, IPv4Address,IPv6Address, OperatingSystemServicePack |Select-Object Name, IPv4Address,IPv6Address, OperatingSystem, OperatingSystemServicePack
             # something causing error here when Win2k8 server is present in the domain.
-            $outdatedOS= $xp+$win7
+            $outdatedOS =@()
+            $outdatedOS= [array]$xp+$win7
             if ($outdatedOS -ne $Null) 
             {
                 Write-Host "** Unsupported Operating Systems found" -ForegroundColor Red
                 # Write results to HTML/CSV files
+                $domainName=(Get-ADDomain | Select-Object Name).Name.toString()
                 $Head = " 
-                    <title>ADAuditor Unsupported OS Report for Domain</title> 
+                    <title>ADAuditor Unsupported OS Report for Domain: $domainName</title> 
                     <style type='text/css'>  
                        table  { border-collapse: collapse; width: 700px }  
                        body   { font-family: Arial }  
@@ -228,8 +232,9 @@
                        th     { background-color: grey }  
                        td.Red { color: Red }  
                     </style>"
-                $outdatedOS|ConvertTo-Csv -NoTypeInformation | Out-File -FilePath $OutFile"_EOL_OS.html"
-                $outdatedOS|ConvertTo-HTML -Title "ADAuditor Unsupported OS Report for domain:"(Get-ADDomain | Select-Object Name).Name.toString() -Body "ADAuditor <b>Unsupported OS Report</b> for domain:"(Get-ADDomain | Select-Object Name).Name.toString() -Head $Head | Out-File -FilePath $OutFile"_EOL_OS.html"
+                $outdatedOS|ConvertTo-Csv -NoTypeInformation | Out-File -FilePath $OutFile"_EOL_OS.csv"
+                
+                $outdatedOS|ConvertTo-HTML -Title "ADAuditor Unsupported OS Report for domain: $domainName" -Body "ADAuditor <b>Unsupported OS Report</b> for domain: $domainName" -Head $Head | Out-File -FilePath $OutFile"_EOL_OS.html"
             }
         }
 
@@ -260,6 +265,49 @@
 
 
 
+    ######################
+    # AD User MODULE ###################################################################################################
+    ######################
+
+    function Invoke-AD-UserModule
+    {
+        function Show-AD-User-ModuleMenu # AD Computer Module menu
+        {
+            Write-Host "[ADAuditor]-[Domain User Module Menu:]" -ForegroundColor Green
+			Write-Host "[1] - "
+			Write-Host "[2] - "
+			Write-Host "[3] - "
+			Write-Host "[4] - "
+			Write-Host "[0] - "
+        }
+
+
+
+        # Menu loop
+        do
+			{
+				Show-AD-User-ModuleMenu
+				$input = Read-Host "Please make a selection"
+				switch ($input)
+				{
+					'1'{  }
+					'2'{  }
+					'3'{  }
+					'4'{  }
+					'0'{ return }
+				}
+				
+			}
+			until ($input -eq '0')
+
+
+    }
+    
+    ########################################################################################################################
+    # End of AD Computer module
+
+    
+
     }
 	
 
@@ -276,7 +324,7 @@
 				switch ($input)
 				{
 					'1'{ Invoke-BPAModule }
-					'2'{  }
+					'2'{ Invoke-AD-UserModule }
 					'3'{ Invoke-AD-ComputerModule }
 					'4'{ }
 					'0'{ return }
