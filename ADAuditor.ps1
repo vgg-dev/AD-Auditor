@@ -214,7 +214,6 @@ function Invoke-ADAudit
             $xp= Get-ADComputer -Filter "OperatingSystem -like '*XP*' -or OperatingSystem -like '*200*'" -Properties OperatingSystem, IPv4Address,IPv6Address, OperatingSystemServicePack |Select-Object Name, IPv4Address,IPv6Address, OperatingSystem, OperatingSystemServicePack
             #Search for Win7 w/o SP1
             $win7= Get-ADComputer -Filter "OperatingSystem -like '*Windows 7*' -and OperatingSystemServicePack -ne 'Service Pack 2'" -Properties OperatingSystem, IPv4Address,IPv6Address, OperatingSystemServicePack |Select-Object Name, IPv4Address,IPv6Address, OperatingSystem, OperatingSystemServicePack
-            # something causing error here when Win2k8 server is present in the domain.
             $outdatedOS =@()
             $outdatedOS= [array]$xp+$win7
             if ($outdatedOS -ne $Null) 
@@ -228,7 +227,7 @@ function Invoke-ADAudit
                        table  { border-collapse: collapse; width: 700px }  
                        body   { font-family: Arial }  
                        td, th { border-width: 2px; border-style: solid; text-align: left;  
-                    padding: 2px 4px; border-color: black }  
+                                padding: 2px 4px; border-color: black }  
                        th     { background-color: grey }  
                        td.Red { color: Red }  
                     </style>"
@@ -274,14 +273,39 @@ function Invoke-ADAudit
         function Show-AD-User-ModuleMenu # AD Computer Module menu
         {
             Write-Host "[ADAuditor]-[Domain User Module Menu:]" -ForegroundColor Green
-			Write-Host "[1] - "
+			Write-Host "[1] - Check Domain Account Policies"
 			Write-Host "[2] - "
 			Write-Host "[3] - "
 			Write-Host "[4] - "
 			Write-Host "[0] - "
         }
 
+        function Check-AD-UserAccount-Policies 
+        {
+            $domainName=(Get-ADDomain | Select-Object Name).Name.toString()
+            $RootDSE = Get-ADRootDSE -Server $domainName
+            $AccountPolicy = Get-ADObject $RootDSE.defaultNamingContext -Property lockoutDuration, lockoutObservationWindow, lockoutThreshold
+            $PasswordPolicy = Get-ADObject $RootDSE.defaultNamingContext -Property minPwdAge, maxPwdAge, minPwdLength, pwdHistoryLength, pwdProperties 
 
+            #check password history > 24 (CIS Win 2012R2 benchmark 1.1.1)
+            if ($PasswordPolicy.pwdHistoryLength -ge 24) 
+            {
+                $PassPolicy = @("Password History Length",$PasswordPolicy.pwdHistoryLength.ToString(),"Compliant","CIS Benchmark")
+            }
+            else 
+            {
+                $PassPolicy = @("Password History Length",$PasswordPolicy.pwdHistoryLength.ToString(),"Not compliant","CIS Benchmark")
+            }
+            
+            #check password min age
+
+
+
+
+            $UserAccountPolicy = @()
+            $UserAccountPolicy =[array]$PassPolicy
+
+        }
 
         # Menu loop
         do
@@ -304,7 +328,7 @@ function Invoke-ADAudit
     }
     
     ########################################################################################################################
-    # End of AD Computer module
+    # End of AD User module
 
     
 
