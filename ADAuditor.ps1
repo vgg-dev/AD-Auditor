@@ -286,25 +286,37 @@ function Invoke-ADAudit
             $RootDSE = Get-ADRootDSE -Server $domainName
             $AccountPolicy = Get-ADObject $RootDSE.defaultNamingContext -Property lockoutDuration, lockoutObservationWindow, lockoutThreshold
             $PasswordPolicy = Get-ADObject $RootDSE.defaultNamingContext -Property minPwdAge, maxPwdAge, minPwdLength, pwdHistoryLength, pwdProperties 
-
-            #check password history > 24 (CIS Win 2012R2 benchmark 1.1.1)
+            # create a custom adAccountPolicy object
+            $adAccountPolicy =@()
+            
+            #check password history > 24 (CIS Win 2012R2 benchmark 1.1.1) and add results to 
             if ($PasswordPolicy.pwdHistoryLength -ge 24) 
             {
-                $PassPolicy = @("Password History Length",$PasswordPolicy.pwdHistoryLength.ToString(),"Compliant","CIS Benchmark")
+                $PassPolicy = New-Object -TypeName PSObject 
+                 $PassPolicy | Add-Member -MemberType NoteProperty -Name PasswordHistory -Value $PasswordPolicy.pwdHistoryLength -PassThru |
+                              Add-Member -MemberType NoteProperty -Name CISCompliance -Value "Compliant" -PassThru |
+                              Add-Member -MemberType NoteProperty -Name 800-53Control -Value "AC-2" -PassThru |
+                              Add-Member -MemberType NoteProperty -Name Rationale -Value ""
+               
             }
             else 
             {
-                $PassPolicy = @("Password History Length",$PasswordPolicy.pwdHistoryLength.ToString(),"Not compliant","CIS Benchmark")
+               $PassPolicy = New-Object -TypeName PSObject 
+                $PassPolicy | Add-Member -MemberType NoteProperty -Name PasswordHistory -Value $PasswordPolicy.pwdHistoryLength -PassThru |
+                              Add-Member -MemberType NoteProperty -Name CISCompliance -Value "Not Compliant" -PassThru |
+                              Add-Member -MemberType NoteProperty -Name 800-53Control -Value "AC-2" |
+                              Add-Member -MemberType NoteProperty -Name Rationale -Value ""
             }
+
+
+           
             
             #check password min age
 
 
 
 
-            $UserAccountPolicy = @()
-            $UserAccountPolicy =[array]$PassPolicy
-
+            
         }
 
         # Menu loop
@@ -314,7 +326,7 @@ function Invoke-ADAudit
 				$input = Read-Host "Please make a selection"
 				switch ($input)
 				{
-					'1'{  }
+					'1'{ Check-AD-UserAccount-Policies }
 					'2'{  }
 					'3'{  }
 					'4'{  }
