@@ -1,7 +1,7 @@
 # AD-Auditor
 Active Directory Auditing Framework
 
-AD-Auditor is a tool to simplify IT security audits of an **Active Directory** instance. This tool collects **interesting** data such as:
+AD-Auditor is a tool to simplify IT security audits of an **Active Directory** instance. This tool collects * *interesting* * information which can be used for IT security evaluyations or regulatory compliance audits. Specifically AD-Auditor looks for:
 
 - Exploitable computers in the domain
 -
