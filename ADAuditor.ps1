@@ -162,6 +162,7 @@ function Invoke-ADAudit
                 $BPAResults | ConvertTo-Html -Title "ADAuditor BPA Report for $BPA on $env:computername" -Body "ADAuditor BPA Report for <b>$BPA</b> on server $env:computername <HR>" -Head $Head |
                                  foreach {$PSItem -replace "<td>Error", "<td style='background-color:#FF0000'>Error"} |
                                  foreach {$PSItem -replace "<td>Warning", "<td style='background-color:#FFA500'>Warning"} |
+                                 foreach {$PSItem -replace "<td>Information", "<td style='background-color:#00FF00'>Information"} |
                                  Out-File -FilePath $Outfile_ADBPA".html"
 
 			}
