@@ -277,7 +277,7 @@ function Invoke-ADAudit
         {
             Write-Host "[ADAuditor]-[Domain User Module Menu:]" -ForegroundColor Green
 			Write-Host "[1] - Check Domain Account Policies"
-			Write-Host "[2] - "
+			Write-Host "[2] - Check AD Privileged Users"
 			Write-Host "[3] - "
 			Write-Host "[4] - "
 			Write-Host "[0] - "
@@ -503,6 +503,207 @@ function Invoke-ADAudit
         
         }
 
+        
+       
+        function Check-Priv-Users 
+        {
+        <# 1. Get all users withing following groups: (https://docs.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/appendix-b--privileged-accounts-and-groups-in-active-directory)
+                Access Control Assistance Operators
+                Account Operators
+                Administrators
+                Allowed RODC Password Replication
+                Backup Operators
+                Cert Publishers
+                Certificate Service DCOM Access
+                Cloneable Domain Controllers
+                Cryptographic Operators
+                Denied RODC Password Replication Group
+                DHCP Administrators
+                DHCP Users
+                Distributed COM Users
+                DnsAdmins
+                DnsUpdateProxy
+                Domain Admins
+                Domain Guests
+                Enterprise Admins
+                Group Policy Creator Owners
+                Hyper-V Administrators 
+                Incoming Forest Trust Builders
+                Network Configuration Operators
+                Performance Log Users
+                Performance Monitor Users
+                Print Operators
+                Remote Desktop Services Users
+                Schema Admins
+                Server Operators
+                Windows Authorization Access
+                WinRMRemoteWMIUsers_
+
+        2. For each user, check and flag if:
+            * Did NOT logon in 60 days
+            * Did NOT change password in 60 days
+            * Never logged in
+            * Not configured to use SmartCard (PIV)
+
+            
+
+        3. Check for presence of Debugger User.This is neither a default nor a built-in group, but when present in AD DS, is cause for further investigation.	
+        The presence of a Debugger Users group indicates that debugging tools have been installed on the system at some point, whether via Visual Studio, SQL, Office, 
+        or other applications that require and support a debugging environment. This group allows remote debugging access to computers. 
+        When this group exists at the domain level, it indicates that a debugger or an application that contains a debugger has been installed on a domain controller.
+
+
+        Based on the following code snippet: (https://social.technet.microsoft.com/Forums/ie/en-US/f238d2b0-a1d7-48e8-8a60-542e7ccfa2e8/recursive-retrieval-of-all-ad-group-memberships-of-a-user?forum=ITCG)
+            $userdn = 'CN=Domain Admins,CN=Users,DC=saitslab2,DC=local'
+            $strFilter = "(memberof:1.2.840.113556.1.4.1941:=$userdn)"
+            $objDomain = New-Object System.DirectoryServices.DirectoryEntry("LDAP://rootDSE")
+            $objSearcher = New-Object System.DirectoryServices.DirectorySearcher
+            $objSearcher.SearchRoot = "LDAP://$($objDomain.rootDomainNamingContext)"
+            $objSearcher.PageSize = 1000
+            $objSearcher.Filter = $strFilter
+            $objSearcher.SearchScope = "Subtree"
+            $colProplist = "name","objectclass"
+            foreach ($i in $colPropList){
+               $objSearcher.PropertiesToLoad.Add($i) > $nul
+               }
+            $colResults = $objSearcher.FindAll()
+            foreach ($objResult in $colResults)
+                {
+      
+                  $objItem = $objResult.Properties
+                  $objItem.name
+                  #$objItem.objectclass
+                        } 
+
+        #>
+
+
+
+        $PrivGroups =@("Access Control Assistance Operators",
+                       "Account Operators",
+                        "Administrators",
+                        "Allowed RODC Password Replication",
+                        "Backup Operators",
+                        "Cert Publishers",
+                        "Certificate Service DCOM Access",
+                        "Cloneable Domain Controllers",
+                        "Cryptographic Operators",
+                        "Denied RODC Password Replication Group",
+                        "DHCP Administrators",
+                        "DHCP Users",
+                        "Distributed COM Users",
+                        "DnsAdmins",
+                        "DnsUpdateProxy",
+                        "Domain Admins",
+                        "Domain Guests",
+                        "Enterprise Admins",
+                        "Group Policy Creator Owners",
+                        "Hyper-V Administrators", 
+                        "Incoming Forest Trust Builders",
+                        "Network Configuration Operators",
+                        "Performance Log Users",
+                        "Performance Monitor Users",
+                        "Print Operators",
+                        "Remote Desktop Services Users",
+                        "Schema Admins",
+                        "Server Operators",
+                        "Windows Authorization Access",
+                        "WinRMRemoteWMIUsers_")
+
+        #generate DN string for each group
+        $GrpDNStrings =@()
+        $UserNames =@()
+        foreach ($PrivGrp in $PrivGroups) 
+            {
+            $GrpDN=Get-ADGroup -Filter 'name -like $PrivGrp' | Select-Object DistinguishedName            
+            if ($GrpDN -ne $Null)
+            {
+                $GrpDNStrings +=[array]$GrpDN.DistinguishedName.toString()
+                
+            }
+
+            }
+    
+        foreach ($GrpDNStr in $GrpDNStrings) 
+            { 
+            $strFilter = "(memberof:1.2.840.113556.1.4.1941:=$GrpDNStr)"
+            $objDomain = New-Object System.DirectoryServices.DirectoryEntry("LDAP://rootDSE")
+            $objSearcher = New-Object System.DirectoryServices.DirectorySearcher
+            $objSearcher.SearchRoot = "LDAP://$($objDomain.rootDomainNamingContext)"
+            $objSearcher.PageSize = 1000
+            $objSearcher.Filter = $strFilter
+            $objSearcher.SearchScope = "Subtree"
+            $colProplist = "name","objectclass"
+            foreach ($i in $colPropList){
+               $objSearcher.PropertiesToLoad.Add($i) > $nul
+               }
+            $colResults = $objSearcher.FindAll()
+            foreach ($objResult in $colResults)
+                {
+                  
+                  $objItem = $objResult.Properties
+                  
+                  if ($objItem.objectclass -eq "user") {
+                  $UserNames += [array]$objItem.name
+                  }
+                
+                } 
+
+        }
+         #get unique names
+         $UserNames=$UserNames | Sort-Object | Get-Unique
+         
+        
+         function generateUserObject ($SAMName, $SID, $LastLogon, $LastPWChange, $LFlag, $PFlag) # generate a standard user object for reporting results
+            {
+                $aUserObject = New-Object -TypeName PSObject 
+                 $aUserObject |Add-Member -MemberType NoteProperty -Name SAMAccountName -Value $SAMName -PassThru | 
+                                  Add-Member -MemberType NoteProperty -Name SID -Value $SID -PassThru |
+                                  Add-Member -MemberType NoteProperty -Name LastLogon -Value $LastLogon -PassThru |
+                                  Add-Member -MemberType NoteProperty -Name LastPassChange -Value $LastPWChange -PassThru |
+                                  Add-Member -MemberType NoteProperty -Name InactiveAcct -Value $LFlag -PassThru |
+                                  Add-Member -MemberType NoteProperty -Name PassNotChanged -Value $PFlag
+                return [PSObject]$aUserObject
+
+            }
+        
+         $PrivUsers =@()
+         $UserNames.count
+         foreach ($User in $UserNames) 
+         {          
+            $TempUserObj=get-aduser -filter 'Name -eq $User' -Properties samaccountname, lastlogontimestamp, pwdLastSet 
+            if ($TempUserObj -ne $Null) 
+            {
+                $PrivUsers += [array] (generateUserObject $TempUserObj.samaccountname $TempUserObj.SID $TempUserObj.lastlogontimestamp $TempUserObj.pwdLastSet)
+            }
+            
+            if ($UserObject.lastlogontimestamp -lt 1) 
+            {
+                
+
+
+
+            }
+           
+               
+               
+               
+               
+               
+               
+                #Select-Object samaccountname, @{Name="lastLogonDate";Expression={[datetime]::FromFileTime($_.lastLogonTimestamp)}}, @{Name="pwdLastSet";Expression={[datetime]::FromFileTime($_.pwdLastSet)}} 
+               
+            
+        }
+        $PrivUsers
+        
+        
+        }
+       
+       
+       
+       
+       
         # Menu loop
         do
 			{
@@ -511,8 +712,8 @@ function Invoke-ADAudit
 				switch ($input)
 				{
 					'1'{ Check-AD-UserAccount-Policies }
-					'2'{  }
-					'3'{  }
+					'2'{ Check-Priv-Users  }
+					'3'{   }
 					'4'{  }
 					'0'{ return }
 				}
