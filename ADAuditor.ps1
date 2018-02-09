@@ -663,6 +663,7 @@ function Invoke-ADAudit
                                   Add-Member -MemberType NoteProperty -Name LastPassChange -Value $LastPWChange -PassThru |
                                   Add-Member -MemberType NoteProperty -Name InactiveAcct -Value $LFlag -PassThru |
                                   Add-Member -MemberType NoteProperty -Name PassNotChanged -Value $PFlag
+               
                 return [PSObject]$aUserObject
 
             }
