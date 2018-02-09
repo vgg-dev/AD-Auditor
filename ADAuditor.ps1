@@ -654,49 +654,73 @@ function Invoke-ADAudit
          $UserNames=$UserNames | Sort-Object | Get-Unique
          
         
-         function generateUserObject ($SAMName, $SID, $LastLogon, $LastPWChange, $LFlag, $PFlag) # generate a standard user object for reporting results
+         function generateUserObject ($SAMName, $SID, $LastLogon, $LastPWChange) # generate a standard user object for reporting results
             {
                 $aUserObject = New-Object -TypeName PSObject 
                  $aUserObject |Add-Member -MemberType NoteProperty -Name SAMAccountName -Value $SAMName -PassThru | 
-                                  Add-Member -MemberType NoteProperty -Name SID -Value $SID -PassThru |
-                                  Add-Member -MemberType NoteProperty -Name LastLogon -Value $LastLogon -PassThru |
-                                  Add-Member -MemberType NoteProperty -Name LastPassChange -Value $LastPWChange -PassThru |
-                                  Add-Member -MemberType NoteProperty -Name InactiveAcct -Value $LFlag -PassThru |
-                                  Add-Member -MemberType NoteProperty -Name PassNotChanged -Value $PFlag
+                                  Add-Member -MemberType NoteProperty -Name SID -Value $SID
+                
+                # check for last logon
+                if ($LastLogon -ne $Null )
+                {                
+                                 $aUserObject | Add-Member -MemberType NoteProperty -Name LastLogon -Value ([DateTime]::fromFileTime($LastLogon))
+                }
+                else 
+                {
+                                 $aUserObject | Add-Member -MemberType NoteProperty -Name LastLogon -Value "Never"
+                }
+                
+                # check last pw change
+                if ($LastPWChange -ne $Null)
+                {
+                
+                                  $aUserObject| Add-Member -MemberType NoteProperty -Name LastPassChange -Value ([DateTime]::fromFileTime($LastPWChange))
+                }
+                else 
+                {
+                                 $aUserObject | Add-Member -MemberType NoteProperty -Name LastPassChange -Value "Never"
+                }
                
+                # set InactiveAccount flag as needed
+                if ($LastLogon -le ((get-date).AddDays(-90)).toFileTime()) # if account not logged in 90 days flag as inactive
+                {                  
+                        $aUserObject | Add-Member -MemberType NoteProperty -Name InactiveAcct -Value "Warning:Inactive account" 
+                       
+                }
+                else 
+                {                  
+                        $aUserObject | Add-Member -MemberType NoteProperty -Name InactiveAcct -Value "OK" 
+                       
+                }
+
+
+                if ($LastPWChange -le ((get-date).AddDays(-90)).toFileTime()) # if password was not chamged in 60 days flag as password not properly changed
+                {                  
+                        $aUserObject | Add-Member -MemberType NoteProperty -Name PassNotChanged -Value "Warning:Password was not changed in 90 days"
+                }
+                else 
+                {
+                        $aUserObject | Add-Member -MemberType NoteProperty -Name PassNotChanged -Value "OK"
+                }
+            
+                #return object
                 return [PSObject]$aUserObject
 
             }
         
-         $PrivUsers =@()
-         $UserNames.count
-         foreach ($User in $UserNames) 
-         {          
-            $TempUserObj=get-aduser -filter 'Name -eq $User' -Properties samaccountname, lastlogontimestamp, pwdLastSet 
-            if ($TempUserObj -ne $Null) 
-            {
-                $PrivUsers += [array] (generateUserObject $TempUserObj.samaccountname $TempUserObj.SID $TempUserObj.lastlogontimestamp $TempUserObj.pwdLastSet)
+             $PrivUsers =@()
+             $UserNames.count
+             foreach ($User in $UserNames) 
+             {          
+                $TempUserObj=get-aduser -filter 'Name -eq $User' -Properties samaccountname, lastlogontimestamp, pwdLastSet 
+                if ($TempUserObj -ne $Null) 
+                {
+                    $PrivUsers += [array] (generateUserObject $TempUserObj.samaccountname $TempUserObj.SID $TempUserObj.lastlogontimestamp $TempUserObj.pwdLastSet)
+                }
+         
             }
-            
-            if ($UserObject.lastlogontimestamp -lt 1) 
-            {
-                
-
-
-
-            }
-           
-               
-               
-               
-               
-               
-               
-                #Select-Object samaccountname, @{Name="lastLogonDate";Expression={[datetime]::FromFileTime($_.lastLogonTimestamp)}}, @{Name="pwdLastSet";Expression={[datetime]::FromFileTime($_.pwdLastSet)}} 
-               
-            
-        }
-        $PrivUsers
+          
+            $PrivUsers #|ConvertTo-Csv -NoTypeInformation
         
         
         }
