@@ -656,7 +656,7 @@ function Invoke-ADAudit
          $UserNames=$UserNames | Sort-Object | Get-Unique
          
         
-         function generateUserObject ($SAMName, $SID, $LastLogon, $LastPWChange, $isEnabled) # generate a standard user object for reporting results
+         function generateUserObject ($SAMName, $SID, $LastLogon, $LastPWChange, $isEnabled, $isSmartCard) # generate a standard user object for reporting results
             {
                 $aUserObject = New-Object -TypeName PSObject 
                  $aUserObject |Add-Member -MemberType NoteProperty -Name SAMAccountName -Value $SAMName -PassThru | 
@@ -704,6 +704,15 @@ function Invoke-ADAudit
                 {
                         $aUserObject | Add-Member -MemberType NoteProperty -Name PassNotChanged -Value "OK"
                 }
+                # check if smart card is required
+                if ($isSmartCard)
+                {
+                    $aUserObject | Add-Member -MemberType NoteProperty -Name SmartCardStatus -Value "Required"
+                }
+                else
+                {
+                    $aUserObject | Add-Member -MemberType NoteProperty -Name SmartCardStatus -Value "Not required"
+                }
                 # check if account is enabled
                 if ($isEnabled)
                 {
@@ -713,6 +722,8 @@ function Invoke-ADAudit
                 {
                     $aUserObject | Add-Member -MemberType NoteProperty -Name AcctStatus -Value "Disabled"
                 }
+                
+
 
                 #return object
                 return [PSObject]$aUserObject
@@ -723,10 +734,10 @@ function Invoke-ADAudit
              
              foreach ($User in $UserNames) 
              {          
-                $TempUserObj=get-aduser -filter 'Name -eq $User' -Properties samaccountname, lastlogontimestamp, pwdLastSet 
+                $TempUserObj=get-aduser -filter 'Name -eq $User' -Properties samaccountname, lastlogontimestamp, pwdLastSet, SmartcardLogonRequired 
                 if ($TempUserObj -ne $Null) 
                 {
-                    $PrivUsers += [array] (generateUserObject $TempUserObj.samaccountname $TempUserObj.SID $TempUserObj.lastlogontimestamp $TempUserObj.pwdLastSet $TempUserObj.enabled)
+                    $PrivUsers += [array] (generateUserObject $TempUserObj.samaccountname $TempUserObj.SID $TempUserObj.lastlogontimestamp $TempUserObj.pwdLastSet $TempUserObj.enabled $TempUserObj.SmartcardLogonRequired)
                 }
          
             }
@@ -753,6 +764,7 @@ function Invoke-ADAudit
                 foreach {$PSItem -replace "<td>Warning:", "<td style='background-color:#FF0000'>Warning:"} | 
                 foreach {$PSItem -replace "<td>OK", "<td style='background-color:#00FF00'>OK"} |
                 foreach {$PSItem -replace "<td>Disabled", "<td style='background-color:#D3D3D3'>Disabled"} |
+                foreach {$PSItem -replace "<td>Not required", "<td style='background-color:#FFFF00'>Not required"} |
                 Out-File -FilePath $OutFile"_ADPrivAccounts.html"
 
         
