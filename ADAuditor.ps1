@@ -205,7 +205,7 @@ function Invoke-ADAudit
         {
             Write-Host "[ADAuditor]-[Domain Computer Module Menu:]" -ForegroundColor Green
 			Write-Host "[1] - Find unsupported Operating Systems in the Domain"
-			Write-Host "[2] - "
+			Write-Host "[2] - Check Patches"
 			Write-Host "[3] - "
 			Write-Host "[4] - "
 			Write-Host "[0] - "
@@ -241,6 +241,44 @@ function Invoke-ADAudit
             }
         }
 
+        function Check-Patches #check if host is patched up-to-date
+        {
+                $Session = New-Object -ComObject "Microsoft.Update.Session"
+                $Searcher = $Session.CreateUpdateSearcher()
+
+                $historyCount = $Searcher.GetTotalHistoryCount()
+
+               
+
+                
+
+                $Searcher.QueryHistory(0, $historyCount) | Select-Object Title, Description, Date, Operation | convertto-html | Out-File -FilePath "patches.html"
+
+
+
+                $Session = New-Object -ComObject "Microsoft.Update.Session"
+                $Searcher = $Session.CreateUpdateSearcher()
+                $historyCount = $Searcher.GetTotalHistoryCount()
+
+                $UpdateHistory = $Searcher.QueryHistory(0, $historyCount)
+                $KBs = @()
+
+                foreach ($Update in $UpdateHistory) { 
+                                [regex]::match($Update.Title,'(KB[0-9]{6,7})').value | Where-Object {$_ -ne ""} | foreach { 
+                                    $KB = New-Object -TypeName PSObject 
+                                    $KB | Add-Member -MemberType NoteProperty -Name KB -Value $_ 
+                                    $KB | Add-Member -MemberType NoteProperty -Name Title -Value $Update.Title  
+                                    $KB | Add-Member -MemberType NoteProperty -Name Description -Value $Update.Description
+                                    $KB | Add-Member -MemberType NoteProperty -Name Date -Value $Update.Date    
+                                    $KBs += $KB
+                                } 
+                            } 
+         
+                $KBs | Select KB,Title,Description,Date | convertto-html | Out-File -FilePath "patches2.html"
+
+                   
+        }
+
 
         # Menu loop
         do
@@ -250,7 +288,7 @@ function Invoke-ADAudit
 				switch ($input)
 				{
 					'1'{ Get-UnsupportedOS  }
-					'2'{  }
+					'2'{ Check-Patches }
 					'3'{  }
 					'4'{  }
 					'0'{ return }
