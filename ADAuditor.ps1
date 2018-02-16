@@ -47,7 +47,7 @@ function Invoke-ADAudit
 			Write-Host " /_/ \_\___/_/ \_\_,_\__,_|_|\__\___/_|  " -ForegroundColor red
 			Write-Host " Active Directory Security Audit Framework" -ForegroundColor red
 			Write-Host ""
-			Write-Host "-=" $startTime "=-" -ForegroundColor "DarkYellow"
+			Write-Host "-=" $startTime "=-" -ForegroundColor "DarkYellow"2
 			Write-Host ""
 		}
 
@@ -656,12 +656,16 @@ function Invoke-ADAudit
          $UserNames=$UserNames | Sort-Object | Get-Unique
          
         
-         function generateUserObject ($SAMName, $SID, $LastLogon, $LastPWChange, $isEnabled, $isSmartCard) # generate a standard user object for reporting results
+         function generateUserObject ($SAMName, $SID, $LastLogon, $LastPWChange, $isEnabled, $isSmartCard, $userGroupS) # generate a standard user object for reporting results
             {
+                
                 $aUserObject = New-Object -TypeName PSObject 
                  $aUserObject |Add-Member -MemberType NoteProperty -Name SAMAccountName -Value $SAMName -PassThru | 
-                                  Add-Member -MemberType NoteProperty -Name SID -Value $SID
-                
+                                  Add-Member -MemberType NoteProperty -Name SID -Value $SID -PassThru |
+                                  Add-Member -MemberType NoteProperty -Name GroupMember -Value $userGroupS
+                                  
+                 
+                         
                 # check for last logon
                 if ($LastLogon -ne $Null )
                 {                
@@ -734,17 +738,22 @@ function Invoke-ADAudit
              
              foreach ($User in $UserNames) 
              {          
-                $TempUserObj=get-aduser -filter 'Name -eq $User' -Properties samaccountname, lastlogontimestamp, pwdLastSet, SmartcardLogonRequired 
+                $TempUserObj=get-aduser -filter 'Name -eq $User' -Properties samaccountname, lastlogontimestamp, pwdLastSet, SmartcardLogonRequired, memberOf
                 if ($TempUserObj -ne $Null) 
                 {
-                    $PrivUsers += [array] (generateUserObject $TempUserObj.samaccountname $TempUserObj.SID $TempUserObj.lastlogontimestamp $TempUserObj.pwdLastSet $TempUserObj.enabled $TempUserObj.SmartcardLogonRequired)
+                   $userGroupS = [string]::Join("|",($TempUserObj.MemberOf | Get-ADGroup -Properties name | Select-Object name).name)
+                   
+                   $PrivUsers += [array] (generateUserObject $TempUserObj.samaccountname $TempUserObj.SID $TempUserObj.lastlogontimestamp $TempUserObj.pwdLastSet $TempUserObj.enabled $TempUserObj.SmartcardLogonRequired $userGroupS)
                 }
          
             }
           
             # Write results to CSV and HTML files
 
+
+
             # CSV
+
             $PrivUsers |ConvertTo-Csv -NoTypeInformation | Out-File -FilePath $OutFile"_ADPrivAccounts.csv"
             #HTML
             $domainName=(Get-ADDomain | Select-Object Name).Name.toString()
